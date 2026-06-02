@@ -1,0 +1,41 @@
+# Render Blueprint — deploy backend (Express + Socket.IO + Prisma/SQLite).
+# Render hỗ trợ WebSocket lâu dài (khác Vercel serverless) nên backend đặt ở đây.
+#
+# Cách dùng:
+#   1. Push repo lên GitHub.
+#   2. Render Dashboard → New → Blueprint → chọn repo này.
+#   3. Điền CLIENT_ORIGIN = URL frontend trên Vercel (vd https://your-app.vercel.app).
+#   4. Deploy. Sau đó (tùy chọn) mở Shell của service chạy `npm run seed` để tạo tài khoản demo.
+services:
+  - type: web
+    name: realtime-kanban-api
+    runtime: node
+    rootDir: server
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm run start:prod
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4000
+      # SQLite. LƯU Ý: free tier có filesystem ephemeral → dữ liệu RESET khi restart/redeploy.
+      # Muốn bền vững: nâng plan (starter+) và bật khối `disk` bên dưới, đổi DATABASE_URL thành file:/var/data/prod.db
+      - key: DATABASE_URL
+        value: file:./prod.db
+      - key: CLIENT_ORIGIN
+        sync: false # nhập thủ công = URL frontend trên Vercel (có thể là danh sách cách nhau bằng dấu phẩy)
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: ACCESS_TOKEN_TTL
+        value: 15m
+      - key: REFRESH_TOKEN_TTL
+        value: 7d
+    # --- Bật để lưu SQLite bền vững (cần plan trả phí) ---
+    # disk:
+    #   name: sqlite-data
+    #   mountPath: /var/data
+    #   sizeGB: 1

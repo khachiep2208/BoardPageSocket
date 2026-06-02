@@ -1,0 +1,34 @@
+# Chạy toàn bộ stack local bằng Docker:  docker compose up --build
+# Frontend: http://localhost:5173  ·  Backend: http://localhost:4000
+services:
+  api:
+    build:
+      context: ./server
+    ports:
+      - '4000:4000'
+    environment:
+      # development → cookie SameSite=Lax (refresh token chạy được trên http://localhost).
+      # Khi deploy thật (https, khác domain) đặt production để dùng SameSite=None; Secure.
+      NODE_ENV: development
+      PORT: '4000'
+      CLIENT_ORIGIN: http://localhost:5173
+      DATABASE_URL: file:/app/data/prod.db
+      JWT_ACCESS_SECRET: dev_access_secret_change_me
+      JWT_REFRESH_SECRET: dev_refresh_secret_change_me
+      ACCESS_TOKEN_TTL: 15m
+      REFRESH_TOKEN_TTL: 7d
+    volumes:
+      - sqlite-data:/app/data # giữ DB qua các lần restart
+
+  web:
+    build:
+      context: ./client
+      args:
+        VITE_API_URL: http://localhost:4000
+    ports:
+      - '5173:80'
+    depends_on:
+      - api
+
+volumes:
+  sqlite-data:
